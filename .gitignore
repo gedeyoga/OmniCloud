@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+apps/web/node_modules/
+services/api/node_modules/
+
+# Build output
+apps/web/dist/
+coverage/
+
+# Environment files
+.env
+.env.*
+!.env.example
+services/api/.env
+services/api/.env.*
+!services/api/.env.example
+credentials.json
+services/api/credentials.json
+
+# Database and local runtime data
+services/api/omnicloud.db
+services/api/omnicloud.db-*
+*.sqlite
+*.sqlite3
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
