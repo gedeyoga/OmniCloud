@@ -271,7 +271,7 @@ const navItems = [
 
 			</aside>
 
-			<main class="px-2 pb-4 lg:px-0 lg:pr-4 lg:pb-6">
+			<main class="px-2 pb-4 lg:px-0 lg:pr-4 lg:pb-5">
 				<slot />
 			</main>
 		</div>

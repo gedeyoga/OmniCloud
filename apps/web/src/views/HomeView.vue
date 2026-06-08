@@ -1,9 +1,8 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import {
 	IconFileDescription,
-	IconFolder,
 	IconInfoCircle,
 	IconLayoutList,
 } from '@tabler/icons-vue';
@@ -19,7 +18,6 @@ const { files, isLoading } = storeToRefs(fileTreeStore);
 const { accounts } = storeToRefs(accountStore);
 
 const quickFiles = computed(() => files.value.filter((file) => !file.is_folder).slice(0, 6));
-const spotlightFolders = computed(() => files.value.filter((file) => file.is_folder).slice(0, 4));
 
 const totalUsed = computed(() => accounts.value.reduce((sum, account) => sum + Number(account.used_space || 0), 0));
 const totalSpace = computed(() => accounts.value.reduce((sum, account) => sum + Number(account.total_space || 0), 0));
@@ -97,26 +95,6 @@ onMounted(loadPage);
 					<div>
 						<strong>{{ formatBytes(totalUsed) }}</strong>
 						<p class="text-[#5f6368] dark:text-slate-400">dari {{ formatBytes(totalSpace) }} digunakan</p>
-					</div>
-				</div>
-			</section>
-
-			<section class="mt-[26px]">
-				<div class="mb-3 flex items-center justify-between gap-3">
-					<h2 class="m-0 text-base font-medium text-[#202124] dark:text-slate-100">Saran folder</h2>
-					<button type="button" class="rounded-full border border-[#dadce0] bg-white px-3.5 py-2 text-[#1a73e8] dark:border-slate-600 dark:bg-slate-800 dark:text-sky-400">Lihat semua</button>
-				</div>
-
-				<div class="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-4">
-					<article v-for="folder in spotlightFolders" :key="folder.id" class="min-w-0 rounded-2xl border border-[#e0e3e7] bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
-						<div class="mb-3 text-[#1a73e8]">
-							<IconFolder :size="28" :stroke="1.8" />
-						</div>
-						<TruncateMarquee as="strong" :text="folder.display_name || folder.file_name" />
-						<TruncateMarquee as="p" class="text-[#5f6368] dark:text-slate-400" :text="folder.provider" />
-					</article>
-					<div v-if="!spotlightFolders.length && !isLoading" class="rounded-2xl border border-[#e0e3e7] p-[18px] text-[#5f6368] dark:border-slate-700 dark:text-slate-400">
-						Belum ada folder tersinkron.
 					</div>
 				</div>
 			</section>

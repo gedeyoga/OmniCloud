@@ -56,7 +56,6 @@ const contextMenu = ref({ visible: false, x: 0, y: 0, file: null });
 const contextMenuRef = ref(null);
 const detailsFile = ref(null);
 const isDetailsOpen = ref(false);
-const isActionRunning = ref(false);
 const previewFile = ref(null);
 const isPreviewOpen = ref(false);
 const isPreviewLoading = ref(false);
@@ -598,12 +597,22 @@ async function collectDroppedEntries(dataTransfer) {
 	return collected.flat();
 }
 
+function resetDragState() {
+	dragDepth.value = 0;
+	isDragActive.value = false;
+}
+
 function handleDragEnter() {
 	dragDepth.value += 1;
 	isDragActive.value = true;
 }
 
-function handleDragLeave() {
+function handleDragLeave(event) {
+	if (!event.currentTarget.contains(event.relatedTarget)) {
+		resetDragState();
+		return;
+	}
+
 	dragDepth.value = Math.max(0, dragDepth.value - 1);
 	if (dragDepth.value === 0) {
 		isDragActive.value = false;
@@ -611,8 +620,7 @@ function handleDragLeave() {
 }
 
 async function handleDrop(event) {
-	dragDepth.value = 0;
-	isDragActive.value = false;
+	resetDragState();
 	const entries = await collectDroppedEntries(event.dataTransfer);
 	await handleUploads(entries);
 }
@@ -644,7 +652,6 @@ async function renameSelectedFile() {
 	if (!nextName?.trim() || nextName.trim() === file.file_name) return;
 
 	actionError.value = '';
-	isActionRunning.value = true;
 
 	try {
 		await uploadQueueStore.trackServerOperation(
@@ -654,8 +661,6 @@ async function renameSelectedFile() {
 		await refreshCurrentFolder();
 	} catch (error) {
 		actionError.value = error.message;
-	} finally {
-		isActionRunning.value = false;
 	}
 }
 
@@ -668,7 +673,6 @@ async function deleteSelectedFile() {
 	if (!confirmed) return;
 
 	actionError.value = '';
-	isActionRunning.value = true;
 
 	try {
 		if (files.length === 1) {
@@ -686,8 +690,6 @@ async function deleteSelectedFile() {
 		await refreshCurrentFolder();
 	} catch (error) {
 		actionError.value = error.message;
-	} finally {
-		isActionRunning.value = false;
 	}
 }
 
@@ -697,7 +699,6 @@ async function showSelectedFileDetails() {
 
 	closeContextMenu();
 	actionError.value = '';
-	isActionRunning.value = true;
 
 	try {
 		const { data } = await api.getFileDetails(file.id);
@@ -705,8 +706,6 @@ async function showSelectedFileDetails() {
 		isDetailsOpen.value = true;
 	} catch (error) {
 		actionError.value = error.message;
-	} finally {
-		isActionRunning.value = false;
 	}
 }
 
@@ -793,6 +792,8 @@ function handleGlobalPointer() {
 }
 
 function handleVisibilityChange() {
+	resetDragState();
+
 	if (document.visibilityState === 'visible') {
 		refreshCurrentFolder();
 		checkSyncStatus();
@@ -805,6 +806,9 @@ onMounted(() => {
 	startHealthPolling();
 	window.addEventListener('click', handleGlobalPointer);
 	window.addEventListener('scroll', handleGlobalPointer, true);
+	window.addEventListener('dragend', resetDragState);
+	window.addEventListener('drop', resetDragState);
+	window.addEventListener('blur', resetDragState);
 	document.addEventListener('visibilitychange', handleVisibilityChange);
 });
 
@@ -812,6 +816,9 @@ onBeforeUnmount(() => {
 	stopHealthPolling();
 	window.removeEventListener('click', handleGlobalPointer);
 	window.removeEventListener('scroll', handleGlobalPointer, true);
+	window.removeEventListener('dragend', resetDragState);
+	window.removeEventListener('drop', resetDragState);
+	window.removeEventListener('blur', resetDragState);
 	document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 </script>
@@ -948,38 +955,42 @@ onBeforeUnmount(() => {
 
 			<p v-if="actionError" class="mb-4 rounded-2xl bg-[#fce8e6] px-4 py-3 text-sm text-[#c5221f] dark:bg-red-950/40 dark:text-red-300">{{ actionError }}</p>
 
-			<div v-if="!isGridView" class="overflow-x-auto overflow-y-hidden rounded-2xl border border-[#e0e3e7] dark:border-slate-700">
-				<div class="grid min-h-11 min-w-[760px] grid-cols-[minmax(260px,2fr)_minmax(180px,1.1fr)_minmax(150px,1fr)_140px] items-center gap-3 bg-[#f8fafd] px-[18px] text-[13px] text-[#5f6368] dark:bg-slate-900/70 dark:text-slate-400">
-					<button type="button" class="flex items-center gap-1 text-left hover:text-[#1a73e8]" @click="toggleSort('file_name')">
-						<span>Nama</span>
-						<component :is="sortIndicator('file_name')" v-if="sortIndicator('file_name')" :size="14" :stroke="2" />
-					</button>
-					<button type="button" class="flex items-center gap-1 text-left hover:text-[#1a73e8]" @click="toggleSort('email')">
-						<span>Pemilik</span>
-						<component :is="sortIndicator('email')" v-if="sortIndicator('email')" :size="14" :stroke="2" />
-					</button>
-					<button type="button" class="flex items-center gap-1 text-left hover:text-[#1a73e8]" @click="toggleSort('updated_at')">
-						<span>Terakhir diubah</span>
-						<component :is="sortIndicator('updated_at')" v-if="sortIndicator('updated_at')" :size="14" :stroke="2" />
-					</button>
-					<button type="button" class="flex items-center gap-1 text-left hover:text-[#1a73e8]" @click="toggleSort('size')">
-						<span>Ukuran file</span>
-						<component :is="sortIndicator('size')" v-if="sortIndicator('size')" :size="14" :stroke="2" />
-					</button>
-				</div>
-
-				<div v-for="item in sortedFiles" :key="item.id" class="group grid min-h-[52px] min-w-[760px] cursor-default select-none grid-cols-[minmax(260px,2fr)_minmax(180px,1.1fr)_minmax(150px,1fr)_140px] items-center gap-3 border-t border-[#eceff1] px-[18px] transition dark:border-slate-700" :class="isSelected(item) ? 'bg-gradient-to-r from-[#e8f0fe] to-[#f8fbff] shadow-[inset_4px_0_0_#1a73e8] dark:from-sky-500/15 dark:to-slate-800 dark:shadow-[inset_4px_0_0_#38bdf8]' : 'hover:bg-black/[0.02] dark:hover:bg-white/6'" @click="selectItem($event, item)" @dblclick="openItemOnDoubleClick(item)" @contextmenu="openContextMenu($event, item)">
-					<div class="flex min-w-0 items-center gap-2.5 text-[#202124] dark:text-slate-100">
-						<component :is="getFileIcon(item, isSelected(item))" :size="18" :stroke="isSelected(item) ? 0 : 1.8" class="transition-transform duration-200 group-hover:scale-110" :class="isSelected(item) ? 'text-[#1a73e8] drop-shadow-sm dark:text-sky-300' : 'text-[#5f6368] dark:text-slate-400'" />
-						<TruncateMarquee :text="item.display_name || item.file_name" />
+			<div v-if="!isGridView" class="custom-scrollbar overflow-x-auto rounded-2xl border border-[#e0e3e7] bg-white dark:border-slate-700 dark:bg-slate-800">
+				<div class="min-w-[760px]">
+					<div class="sticky top-0 z-10 grid min-h-11 grid-cols-[minmax(260px,2fr)_minmax(180px,1.1fr)_minmax(150px,1fr)_140px] items-center gap-3 border-b border-[#e8eaed] bg-[#f8fafd]/95 pl-[18px] pr-[28px] text-[13px] text-[#5f6368] backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-400">
+						<button type="button" class="flex items-center gap-1 text-left hover:text-[#1a73e8]" @click="toggleSort('file_name')">
+							<span>Nama</span>
+							<component :is="sortIndicator('file_name')" v-if="sortIndicator('file_name')" :size="14" :stroke="2" />
+						</button>
+						<button type="button" class="flex items-center gap-1 text-left hover:text-[#1a73e8]" @click="toggleSort('email')">
+							<span>Pemilik</span>
+							<component :is="sortIndicator('email')" v-if="sortIndicator('email')" :size="14" :stroke="2" />
+						</button>
+						<button type="button" class="flex items-center gap-1 text-left hover:text-[#1a73e8]" @click="toggleSort('updated_at')">
+							<span>Terakhir diubah</span>
+							<component :is="sortIndicator('updated_at')" v-if="sortIndicator('updated_at')" :size="14" :stroke="2" />
+						</button>
+						<button type="button" class="flex items-center gap-1 text-left hover:text-[#1a73e8]" @click="toggleSort('size')">
+							<span>Ukuran file</span>
+							<component :is="sortIndicator('size')" v-if="sortIndicator('size')" :size="14" :stroke="2" />
+						</button>
 					</div>
-					<TruncateMarquee class="text-[#5f6368] dark:text-slate-400" :text="item.email" />
-					<span class="text-[#5f6368] dark:text-slate-400">{{ formatDate(item.updated_at) }}</span>
-					<span class="text-[#5f6368] dark:text-slate-400">{{ item.is_folder ? '—' : formatBytes(item.size) }}</span>
-				</div>
 
-				<div v-if="!sortedFiles.length && !isLoading" class="p-[18px] text-[#5f6368] dark:text-slate-400">Tidak ada file pada lokasi ini.</div>
-				<div v-if="isLoading" class="p-[18px] text-[#5f6368] dark:text-slate-400">Memuat metadata mirror...</div>
+					<div class="custom-scrollbar max-h-[min(52vh,520px)] overflow-y-auto overflow-x-hidden">
+						<div v-for="item in sortedFiles" :key="item.id" class="group grid min-h-[52px] cursor-default select-none grid-cols-[minmax(260px,2fr)_minmax(180px,1.1fr)_minmax(150px,1fr)_140px] items-center gap-3 border-t border-[#eceff1] px-[18px] transition first:border-t-0 dark:border-slate-700" :class="isSelected(item) ? 'bg-gradient-to-r from-[#e8f0fe] to-[#f8fbff] shadow-[inset_4px_0_0_#1a73e8] dark:from-sky-500/15 dark:to-slate-800 dark:shadow-[inset_4px_0_0_#38bdf8]' : 'hover:bg-black/[0.02] dark:hover:bg-white/6'" @click="selectItem($event, item)" @dblclick="openItemOnDoubleClick(item)" @contextmenu="openContextMenu($event, item)">
+							<div class="flex min-w-0 items-center gap-2.5 text-[#202124] dark:text-slate-100">
+								<component :is="getFileIcon(item, isSelected(item))" :size="18" :stroke="isSelected(item) ? 0 : 1.8" class="transition-transform duration-200 group-hover:scale-110" :class="isSelected(item) ? 'text-[#1a73e8] drop-shadow-sm dark:text-sky-300' : 'text-[#5f6368] dark:text-slate-400'" />
+								<TruncateMarquee :text="item.display_name || item.file_name" />
+							</div>
+							<TruncateMarquee class="text-[#5f6368] dark:text-slate-400" :text="item.email" />
+							<span class="text-[#5f6368] dark:text-slate-400">{{ formatDate(item.updated_at) }}</span>
+							<span class="text-[#5f6368] dark:text-slate-400">{{ item.is_folder ? '—' : formatBytes(item.size) }}</span>
+						</div>
+
+						<div v-if="!sortedFiles.length && !isLoading" class="p-[18px] text-[#5f6368] dark:text-slate-400">Tidak ada file pada lokasi ini.</div>
+						<div v-if="isLoading" class="p-[18px] text-[#5f6368] dark:text-slate-400">Memuat metadata mirror...</div>
+					</div>
+				</div>
 			</div>
 
 			<div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -1111,9 +1122,6 @@ onBeforeUnmount(() => {
 				</div>
 			</div>
 
-			<div v-if="isActionRunning" class="pointer-events-none absolute right-6 top-6 rounded-full bg-[#1a73e8] px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
-				Memproses...
-			</div>
 		</div>
 
 		<FloatingProgressToast :uploads="uploads" :total-progress="totalProgress" @close="uploadQueueStore.clearOperations" @close-item="uploadQueueStore.closeOperation" />
