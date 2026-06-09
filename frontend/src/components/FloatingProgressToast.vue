@@ -9,6 +9,7 @@ import {
 	IconEdit,
 	IconFileDescription,
 	IconFilter2X,
+	IconFolderPlus,
 	IconLoader2,
 	IconTrash,
 	IconUpload,
@@ -77,9 +78,15 @@ const toastTitle = computed(() => {
 	const labels = {
 		upload: 'Mengupload',
 		download: 'Mengunduh',
+		'create-folder': 'Membuat',
 		rename: 'Mengganti nama',
 		delete: 'Menghapus',
 	};
+	const targetKind = latestTask.targetKind || 'item';
+
+	if (['create-folder', 'rename', 'delete'].includes(type)) {
+		return `${labels[type] || 'Memproses'} ${taskCount} ${targetKind}`;
+	}
 
 	return `${labels[type] || 'Memproses'} ${taskCount} item`;
 });
@@ -118,6 +125,7 @@ function iconFor(upload) {
 	const icons = {
 		upload: IconUpload,
 		download: IconDownload,
+		'create-folder': IconFolderPlus,
 		rename: IconEdit,
 		delete: IconTrash,
 	};

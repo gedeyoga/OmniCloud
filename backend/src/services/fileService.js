@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto';
-import path from 'path';
 import { db } from '../config/database.js';
 
 function normalizePath(input = '/') {
@@ -9,26 +8,7 @@ function normalizePath(input = '/') {
 }
 
 function buildDisplayNames(rows) {
-	const grouped = rows.reduce((map, row) => {
-		const key = `${row.virtual_path}:${row.file_name}`;
-		if (!map.has(key)) map.set(key, []);
-		map.get(key).push(row);
-		return map;
-	}, new Map());
-
-	return rows.map((row) => {
-		const siblings = grouped.get(`${row.virtual_path}:${row.file_name}`) || [];
-		if (siblings.length <= 1) {
-			return row;
-		}
-
-		const ext = path.extname(row.file_name);
-		const baseName = ext ? row.file_name.slice(0, -ext.length) : row.file_name;
-		return {
-			...row,
-			display_name: `${baseName} (${row.provider} - ${row.email})${ext}`,
-		};
-	});
+	return rows;
 }
 
 export function listFilesByPath(virtualPath = '/') {
