@@ -45,6 +45,9 @@ import dropboxLogo from '../assets/dropbox.svg';
 import googleDriveLogo from '../assets/google-drive.svg';
 import megaLogo from '../assets/mega.svg';
 import oneDriveLogo from '../assets/microsoft-onedrive.svg';
+import pcloudLogo from '../assets/pcloud.svg';
+import yandexLogo from '../assets/yandex-disk.svg';
+import s3Logo from '../assets/s3-storage.svg';
 import DriveShell from '../components/DriveShell.vue';
 import FloatingProgressToast from '../components/FloatingProgressToast.vue';
 import TruncateMarquee from '../components/TruncateMarquee.vue';
@@ -240,6 +243,9 @@ function providerLabel(provider) {
 	if (provider === 'onedrive') return 'OneDrive';
 	if (provider === 'dropbox') return 'Dropbox';
 	if (provider === 'mega') return 'MEGA';
+	if (provider === 'pcloud') return 'pCloud';
+	if (provider === 'yandex') return 'Yandex Disk';
+	if (provider === 's3') return 'S3 Storage';
 	return provider || 'Provider';
 }
 
@@ -248,6 +254,9 @@ function providerIcon(provider) {
 	if (provider === 'onedrive') return oneDriveLogo;
 	if (provider === 'dropbox') return dropboxLogo;
 	if (provider === 'mega') return megaLogo;
+	if (provider === 'pcloud') return pcloudLogo;
+	if (provider === 'yandex') return yandexLogo;
+	if (provider === 's3') return s3Logo;
 	return null;
 }
 

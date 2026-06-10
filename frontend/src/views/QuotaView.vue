@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
+import { useRoute, useRouter } from 'vue-router';
 import {
 	IconChevronDown,
 	IconCloud,
@@ -21,8 +22,13 @@ import dropboxLogo from '../assets/dropbox.svg';
 import googleDriveLogo from '../assets/google-drive.svg';
 import megaLogo from '../assets/mega.svg';
 import oneDriveLogo from '../assets/microsoft-onedrive.svg';
+import pcloudLogo from '../assets/pcloud.svg';
+import yandexLogo from '../assets/yandex-disk.svg';
+import s3Logo from '../assets/s3-storage.svg';
 import DriveShell from '../components/DriveShell.vue';
 import MegaConnectModal from '../components/MegaConnectModal.vue';
+import PCloudConnectModal from '../components/PCloudConnectModal.vue';
+import S3ConnectModal from '../components/S3ConnectModal.vue';
 import TruncateMarquee from '../components/TruncateMarquee.vue';
 import { useAccountManagementStore } from '../stores/accountManagement';
 import { api } from '../services/api';
@@ -30,12 +36,17 @@ import { api } from '../services/api';
 const { t } = useI18n();
 const accountStore = useAccountManagementStore();
 const { accounts, isLoading, error, isDisconnectingId } = storeToRefs(accountStore);
+const route = useRoute();
+const router = useRouter();
 
 const connectingProvider = ref('');
 const actionError = ref('');
+const actionSuccess = ref('');
 const isSyncing = ref(false);
 const isConnectMenuOpen = ref(false);
 const isMegaModalOpen = ref(false);
+const isPCloudModalOpen = ref(false);
+const isS3ModalOpen = ref(false);
 
 const ALLOCATION_STRATEGIES = ['round_robin', 'weighted_round_robin', 'least_used', 'most_free', 'manual'];
 const activeTab = ref('overview');
@@ -128,6 +139,27 @@ const providerConnectOptions = computed(() => [
 		icon: megaLogo,
 		action: openMegaModal,
 	},
+	{
+		key: 'pcloud',
+		label: t('providers.pcloud'),
+		busyLabel: t('storage.connectingProvider', { provider: 'pCloud' }),
+		icon: pcloudLogo,
+		action: openPCloudModal,
+	},
+	{
+		key: 'yandex',
+		label: t('providers.yandex'),
+		busyLabel: t('storage.connectingProvider', { provider: 'Yandex' }),
+		icon: yandexLogo,
+		action: connectYandex,
+	},
+	{
+		key: 's3',
+		label: t('providers.s3'),
+		busyLabel: t('storage.connectingProvider', { provider: 'S3' }),
+		icon: s3Logo,
+		action: openS3Modal,
+	},
 ]);
 
 const storageSegments = computed(() => {
@@ -197,6 +229,9 @@ function providerLabel(provider) {
 	if (provider === 'onedrive') return 'OneDrive';
 	if (provider === 'dropbox') return 'Dropbox';
 	if (provider === 'mega') return 'MEGA';
+	if (provider === 'pcloud') return 'pCloud';
+	if (provider === 'yandex') return 'Yandex Disk';
+	if (provider === 's3') return 'S3 Storage';
 	return provider;
 }
 
@@ -205,6 +240,9 @@ function providerIcon(provider) {
 	if (provider === 'onedrive') return oneDriveLogo;
 	if (provider === 'dropbox') return dropboxLogo;
 	if (provider === 'mega') return megaLogo;
+	if (provider === 'pcloud') return pcloudLogo;
+	if (provider === 'yandex') return yandexLogo;
+	if (provider === 's3') return s3Logo;
 	return null;
 }
 
@@ -419,6 +457,70 @@ async function connectMega(payload) {
 	}
 }
 
+function openPCloudModal() {
+	isConnectMenuOpen.value = false;
+	actionError.value = '';
+	isPCloudModalOpen.value = true;
+}
+
+function closePCloudModal() {
+	if (connectingProvider.value === 'pcloud') return;
+	isPCloudModalOpen.value = false;
+}
+
+async function connectPCloud(payload) {
+	connectingProvider.value = 'pcloud';
+	actionError.value = '';
+	try {
+		await api.connectPCloudAccount(payload);
+		await accountStore.loadAccounts();
+		isPCloudModalOpen.value = false;
+	} catch (error) {
+		actionError.value = error.message;
+	} finally {
+		connectingProvider.value = '';
+	}
+}
+
+async function connectYandex() {
+	connectingProvider.value = 'yandex';
+	isConnectMenuOpen.value = false;
+	actionError.value = '';
+	try {
+		const { data } = await api.getYandexConnectUrl();
+		window.location.href = data.authorizationUrl;
+	} catch (error) {
+		actionError.value = error.message;
+		connectingProvider.value = '';
+	}
+}
+
+
+function openS3Modal() {
+	isConnectMenuOpen.value = false;
+	actionError.value = '';
+	isS3ModalOpen.value = true;
+}
+
+function closeS3Modal() {
+	if (connectingProvider.value === 's3') return;
+	isS3ModalOpen.value = false;
+}
+
+async function connectS3(payload) {
+	connectingProvider.value = 's3';
+	actionError.value = '';
+	try {
+		await api.connectS3Account(payload);
+		await accountStore.loadAccounts();
+		isS3ModalOpen.value = false;
+	} catch (error) {
+		actionError.value = error.message;
+	} finally {
+		connectingProvider.value = '';
+	}
+}
+
 async function disconnectAccount(account) {
 	const confirmed = window.confirm(t('storage.disconnectConfirm', { email: account.email }));
 	if (!confirmed) return;
@@ -448,7 +550,36 @@ function toggleConnectMenu() {
 	isConnectMenuOpen.value = !isConnectMenuOpen.value;
 }
 
-onMounted(loadPage);
+const OAUTH_PROVIDERS = ['yandex', 'google', 'onedrive', 'dropbox'];
+
+async function handleOAuthRedirect() {
+	const query = route.query;
+	const provider = OAUTH_PROVIDERS.find((key) => query[key]);
+	if (!provider) return;
+
+	const status = String(query[provider]);
+	const message = query.message ? String(query.message) : '';
+
+	if (status === 'connected') {
+		await accountStore.loadAccounts();
+		await loadAllocation();
+		actionSuccess.value = t('storage.connectSuccess', { provider });
+		actionError.value = '';
+	} else if (status === 'error') {
+		actionError.value = message || t('storage.connectFailed', { provider });
+		actionSuccess.value = '';
+	}
+
+	const nextQuery = { ...query };
+	delete nextQuery[provider];
+	delete nextQuery.message;
+	router.replace({ query: nextQuery });
+}
+
+onMounted(async () => {
+	await loadPage();
+	await handleOAuthRedirect();
+});
 </script>
 
 <template>
@@ -640,12 +771,15 @@ onMounted(loadPage);
 			</section>
 
 			<p v-if="actionError || error" class="mb-4 rounded-2xl bg-[#fce8e6] px-4 py-3 text-sm text-[#c5221f] dark:bg-red-950/40 dark:text-red-300">{{ actionError || error }}</p>
+			<p v-if="actionSuccess" class="mb-4 rounded-2xl bg-[#e6f4ea] px-4 py-3 text-sm text-[#188038] dark:bg-emerald-950/40 dark:text-emerald-300">{{ actionSuccess }}</p>
 
 			<div v-if="!accounts.length && !isLoading" class="rounded-[24px] border border-dashed border-[#dadce0] bg-white p-6 text-center text-[#5f6368] dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">
 				{{ t('storage.noAccounts') }}
 
 			</div>
 			<MegaConnectModal v-if="isMegaModalOpen" :is-connecting="connectingProvider === 'mega'" :error="actionError" @close="closeMegaModal" @connect="connectMega" />
+			<PCloudConnectModal v-if="isPCloudModalOpen" :is-connecting="connectingProvider === 'pcloud'" :error="actionError" @close="closePCloudModal" @connect="connectPCloud" />
+			<S3ConnectModal v-if="isS3ModalOpen" :is-connecting="connectingProvider === 's3'" :error="actionError" @close="closeS3Modal" @connect="connectS3" />
 		</div>
 	</DriveShell>
 </template>

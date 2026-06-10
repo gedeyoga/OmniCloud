@@ -106,6 +106,21 @@ export const api = {
 			body: JSON.stringify(payload),
 		});
 	},
+	connectS3Account(payload) {
+		return request('/accounts/s3/connect', {
+			method: 'POST',
+			body: JSON.stringify(payload),
+		});
+	},
+	connectPCloudAccount(payload) {
+		return request('/accounts/pcloud/connect', {
+			method: 'POST',
+			body: JSON.stringify(payload),
+		});
+	},
+	getYandexConnectUrl() {
+		return request('/accounts/yandex/connect');
+	},
 	listAccounts() {
 		return request('/accounts');
 	},

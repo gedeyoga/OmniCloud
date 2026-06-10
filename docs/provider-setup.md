@@ -13,7 +13,7 @@ Use these callback URLs while running OmniCloud locally:
 | Google Drive | `http://localhost:8787/api/accounts/google/callback` |
 | OneDrive | `http://localhost:8787/api/accounts/onedrive/callback` |
 | Dropbox | `http://localhost:8787/api/accounts/dropbox/callback` |
-| MEGA | Not applicable |
+| Yandex Disk | `http://localhost:8787/api/accounts/yandex/callback` |
 
 If you change the API port or deploy the API to another domain, update the redirect URIs in both the provider dashboard and `backend/.env`.
 
@@ -34,9 +34,13 @@ ONEDRIVE_REDIRECT_URI=http://localhost:8787/api/accounts/onedrive/callback
 DROPBOX_CLIENT_ID=
 DROPBOX_CLIENT_SECRET=
 DROPBOX_REDIRECT_URI=http://localhost:8787/api/accounts/dropbox/callback
+
+YANDEX_CLIENT_ID=
+YANDEX_CLIENT_SECRET=
+YANDEX_REDIRECT_URI=http://localhost:8787/api/accounts/yandex/callback
 ```
 
-MEGA does not use OAuth client credentials in OmniCloud. MEGA accounts are connected from the app UI using email, password, and optional 2FA code.
+MEGA, pCloud, and S3-compatible services do not use developer credentials in `.env`. MEGA and pCloud connect from the app UI with email/password; S3 services use per-bucket access keys entered in the form.
 
 ## Google Drive
 
@@ -263,8 +267,8 @@ MEGA does not require creating a developer OAuth application for OmniCloud.
 ### How MEGA connection works
 
 1. Start OmniCloud.
-2. Open the **Penyimpanan** page.
-3. Click **Hubungkan** → **MEGA**.
+2. Open the **Storage** page.
+3. Click **Connect** → **MEGA**.
 4. Enter:
    - MEGA email
    - MEGA password
@@ -279,6 +283,117 @@ OmniCloud stores the MEGA session and credentials encrypted in the local SQLite 
 - Keep your local `.env` and SQLite database private.
 - If MEGA returns `EAGAIN`, it means MEGA is temporarily busy or unavailable. Try connecting again later.
 
+## What needs OAuth, and what does not
+
+OmniCloud supports two connection styles:
+
+| Provider | OAuth app required? | What you prepare | Where you connect |
+| --- | --- | --- | --- |
+| Google Drive | Yes (OAuth client in Google Cloud) | Client ID + secret in `.env` | Connect → Google Drive (redirect login) |
+| OneDrive | Yes (Entra app registration) | Client ID + secret in `.env` | Connect → OneDrive (redirect login) |
+| Dropbox | Yes (Dropbox app) | App key + secret in `.env` | Connect → Dropbox (redirect login) |
+| **Yandex Disk** | **Yes (Yandex OAuth app)** | Client ID + secret in `.env` | Connect → Yandex Disk (redirect login) |
+| MEGA | No | Email + password (+ 2FA) | Connect → MEGA (in-app form) |
+| **pCloud** | **No** | Email + password | Connect → pCloud (in-app form) |
+| **S3 (R2, B2, Tebi, Storj, iDrive e2, MinIO, any S3 API)** | **No** | Access Key ID + Secret + bucket + endpoint (+ region) | Connect → S3 (in-app form) |
+
+The distinction is between **developer credentials** (you, the operator, register an app once and put the keys in `.env`) and **end-user credentials** (each user logs in with their own account):
+
+- **Developer credentials in `.env`:** Google Drive, OneDrive, Dropbox, and **Yandex Disk** use a redirect OAuth flow — register the app once, set the client id/secret in `.env`, and every user simply clicks Connect and authorizes.
+- **End-user credentials only (no `.env`):** **MEGA** and **pCloud** take the user's email/password directly. **S3 services** take per-bucket access keys — these are genuinely per-user/per-bucket, so they stay in the connect form, not `.env`.
+
+## pCloud
+
+pCloud does not require a developer OAuth application.
+
+### How pCloud connection works
+
+1. Start OmniCloud.
+2. Open the **Storage** page.
+3. Click **Connect** → **pCloud**.
+4. Enter your pCloud email and password.
+5. Submit.
+
+OmniCloud logs in using pCloud's digest auth, stores the resulting auth token (and your credentials, encrypted) so it can re-login automatically when the token expires. Both the US (`api.pcloud.com`) and EU (`eapi.pcloud.com`) regions are detected automatically.
+
+### Notes
+
+- No `PCLOUD_CLIENT_ID` / secret needed.
+- If you have 2FA enabled on pCloud, generate an app-specific password or disable 2FA for this login.
+
+## Yandex Disk
+
+Yandex Disk uses a standard redirect OAuth flow, just like Google, OneDrive, and Dropbox. You register one app, put the client id/secret in `.env`, and each user simply clicks Connect and authorizes in their browser.
+
+### 1. Create a Yandex OAuth app
+
+1. Open the Yandex OAuth app registration page:
+
+   `https://oauth.yandex.com/client/new`
+
+2. Give the app a name, for example `OmniCloud Local`.
+3. Under **Platforms**, choose **Web services** and set the **Redirect URI** to:
+
+   ```text
+   http://localhost:8787/api/accounts/yandex/callback
+   ```
+
+4. Under **Permissions / scopes**, add the Yandex.Disk REST API scopes:
+
+   ```text
+   cloud_api:disk.read
+   cloud_api:disk.write
+   cloud_api:disk.info
+   ```
+
+5. Create the app.
+
+### 2. Copy values into `.env`
+
+Yandex shows a **ClientID** and **Client secret**:
+
+```env
+YANDEX_CLIENT_ID=your_yandex_client_id
+YANDEX_CLIENT_SECRET=your_yandex_client_secret
+YANDEX_REDIRECT_URI=http://localhost:8787/api/accounts/yandex/callback
+```
+
+### 3. Connect in OmniCloud
+
+1. Open the **Storage** page and click **Connect** → **Yandex Disk**.
+2. You are redirected to Yandex to authorize.
+3. After approving, you return to the **Storage** page, already connected.
+
+### Notes
+
+- The redirect URI must match the one registered exactly.
+- OmniCloud stores the refresh token and refreshes the access token automatically.
+- No user needs the client id/secret — that is the operator's app config.
+
+## S3-compatible storage (Cloudflare R2, Backblaze B2, Tebi.io, Storj, iDrive e2, MinIO, and more)
+
+All S3-compatible services share a single adapter. None require OAuth — you generate access keys in each provider's console.
+
+The OmniCloud **Connect → S3** form has no provider presets: every field is entered manually, so the same form works with any S3-compatible service. Paste the access keys, bucket, endpoint, and region straight from your provider console.
+
+
+
+### Fields in the form
+
+- **Access Key ID** and **Secret Access Key** — generated in the provider console.
+- **Bucket Name** — an existing bucket (OmniCloud verifies access with a `HeadBucket` check before saving). Use the exact bucket name from your console; a wrong name returns a clear "bucket not found" error.
+- **Region** — type the region for your bucket; defaults to `auto` if left blank.
+- **Endpoint** — required. Paste the S3 endpoint URL for your provider (e.g. `https://s3.tebi.io`).
+- **Display Name** (optional) — a friendly label shown in the UI.
+- **Quota (GB)** (optional) — object storage does not report a quota, so OmniCloud uses this value for allocation math. Defaults to 10 GB if left blank.
+
+### Notes
+
+- The access key needs read + write + list permissions on the bucket.
+- For Cloudflare R2, the account ID in the endpoint is found on the R2 overview page.
+- For Backblaze B2, the S3 endpoint region must match the region shown for your bucket.
+- No `.env` changes are needed for S3 — everything is entered in the form and stored encrypted.
+
 ## After editing `.env`
 
 Restart the API server so the new values are loaded:
@@ -287,7 +402,7 @@ Restart the API server so the new values are loaded:
 npm run dev
 ```
 
-Then open OmniCloud and connect accounts from the **Penyimpanan** page.
+Then open OmniCloud and connect accounts from the **Storage** page. For the redirect-based providers (Google Drive, OneDrive, Dropbox, Yandex Disk), you are sent to the provider to authorize and then returned to the **Storage** page — you stay on that page the whole time.
 
 ## Troubleshooting
 

@@ -19,7 +19,6 @@ import {
 	IconUsers,
 	IconX,
 	IconClockHour4,
-	IconAdjustmentsHorizontal,
 	IconCloud,
 	IconFolder,
 	IconCloudFilled,
@@ -213,9 +212,6 @@ const profileLinks = [
 					<IconSearch :size="18" :stroke="2" />
 				</span>
 				<input type="search" :placeholder="t('header.searchPlaceholder')" class="w-full min-w-0 border-0 bg-transparent text-sm text-[#202124] outline-none placeholder:text-[#5f6368] dark:text-slate-100 dark:placeholder:text-slate-400 sm:text-base" />
-				<span class="grid place-items-center text-[#5f6368] dark:text-slate-400">
-					<IconAdjustmentsHorizontal :size="18" :stroke="2" />
-				</span>
 			</div>
 
 			<div class="hidden items-center justify-end gap-2 lg:flex">

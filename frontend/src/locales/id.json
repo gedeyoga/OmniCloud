@@ -101,7 +101,7 @@
 		"unifiedExplorer": "Unified file explorer",
 		"virtualPooling": "Virtual path pooling",
 		"searchInFolder": "Telusuri folder ini...",
-		"noFiles": "Tidak ada file pada lokasi ini.",
+		"noFiles": "Tidak ada file di folder ini.",
 		"noOwner": "Tanpa pemilik",
 		"loadingMetadata": "Sedang memuat...",
 		"rename": "Ganti nama",
@@ -163,7 +163,9 @@
 		"oneDrive": "OneDrive",
 		"dropbox": "Dropbox",
 		"mega": "MEGA",
-		"s3": "S3"
+		"s3": "S3 Storage",
+		"pcloud": "pCloud",
+		"yandex": "Yandex Disk"
 	},
 	"mega": {
 		"connectTitle": "Hubungkan MEGA",
@@ -175,6 +177,42 @@
 		"twoFactorOptional": "(opsional)",
 		"connect": "Hubungkan MEGA",
 		"connecting": "Menghubungkan..."
+	},
+	"connectModal": {
+		"cancel": "Batal",
+		"connect": "Hubungkan",
+		"connecting": "Menghubungkan...",
+		"optional": "(opsional)",
+		"pcloud": {
+			"title": "Hubungkan pCloud",
+			"hint": "Gunakan email dan password pCloud Anda.",
+			"username": "Email",
+			"usernamePlaceholder": "anda{'@'}example.com",
+			"password": "Password",
+			"passwordPlaceholder": "Password akun pCloud"
+		},
+		"yandex": {
+			"title": "Hubungkan Yandex Disk",
+			"hint": "Anda akan diarahkan ke Yandex untuk memberi otorisasi akses."
+		},
+		"s3": {
+			"title": "Hubungkan S3 Storage",
+			"hint": "Mendukung semua layanan kompatibel S3 (Cloudflare R2, Backblaze B2, Tebi.io, Storj, iDrive e2, MinIO, dan lainnya). Masukkan access key dan endpoint dari konsol provider.",
+			"accessKeyId": "Access Key ID",
+			"accessKeyIdPlaceholder": "Access key",
+			"secretAccessKey": "Secret Access Key",
+			"secretAccessKeyPlaceholder": "Secret key",
+			"bucket": "Nama Bucket",
+			"bucketPlaceholder": "my-bucket",
+			"region": "Region",
+			"regionPlaceholder": "mis. auto atau us-east-1",
+			"endpoint": "Endpoint",
+			"endpointPlaceholder": "https://endpoint-s3-anda",
+			"label": "Nama Tampilan",
+			"labelPlaceholder": "Nama mudah diingat (opsional)",
+			"totalSpace": "Kuota (GB)",
+			"totalSpacePlaceholder": "mis. 10"
+		}
 	},
 	"help": {
 		"title": "Bantuan cepat OmniCloud",
@@ -259,7 +297,9 @@
 		"disconnecting": "Memutuskan...",
 		"disconnectConfirm": "Putuskan akun {email}?",
 		"noAccounts": "Belum ada akun terhubung.",
-		"reconnectNotSupported": "Provider {provider} belum mendukung reconnect otomatis."
+		"reconnectNotSupported": "Provider {provider} belum mendukung reconnect otomatis.",
+		"connectSuccess": "Akun {provider} berhasil terhubung.",
+		"connectFailed": "Gagal menghubungkan akun {provider}."
 	},
 	"allocation": {
 		"title": "Alokasi penyimpanan",
@@ -289,7 +329,7 @@
 		"unifiedExplorer": "Unified file explorer",
 		"virtualPooling": "Virtual path pooling",
 		"searchInFolder": "Cari di folder ini...",
-		"noFiles": "Tidak ada file di path virtual ini.",
+		"noFiles": "Tidak ada file di folder ini.",
 		"loading": "Memuat mirror metadata...",
 		"download": "Unduh",
 		"folder": "Folder",

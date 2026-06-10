@@ -32,6 +32,10 @@ export const env = {
 	dropboxClientSecret: process.env.DROPBOX_CLIENT_SECRET || '',
 	dropboxRedirectUri:
 		process.env.DROPBOX_REDIRECT_URI || 'http://localhost:8787/api/accounts/dropbox/callback',
+	yandexClientId: process.env.YANDEX_CLIENT_ID || '',
+	yandexClientSecret: process.env.YANDEX_CLIENT_SECRET || '',
+	yandexRedirectUri:
+		process.env.YANDEX_REDIRECT_URI || 'http://localhost:8787/api/accounts/yandex/callback',
 };
 
 export function redactEnv() {
@@ -47,5 +51,7 @@ export function redactEnv() {
 		onedriveRedirectUri: env.onedriveRedirectUri,
 		dropboxClientId: env.dropboxClientId ? '[configured]' : '[missing]',
 		dropboxRedirectUri: env.dropboxRedirectUri,
+		yandexClientId: env.yandexClientId ? '[configured]' : '[missing]',
+		yandexRedirectUri: env.yandexRedirectUri,
 	};
 }
