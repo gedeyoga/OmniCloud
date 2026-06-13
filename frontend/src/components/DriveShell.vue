@@ -29,6 +29,7 @@ import {
 	IconUserFilled,
 	IconLanguage,
 	IconLogout,
+	IconBell,
 } from '@tabler/icons-vue';
 import { useRouter } from 'vue-router';
 import logoUrl from '../assets/logo.webp';
@@ -39,6 +40,7 @@ import { useStorageStats } from '../composables/useStorageStats.js';
 import HelpModal from './HelpModal.vue';
 import ProfileModal from './ProfileModal.vue';
 import LanguageModal from './LanguageModal.vue';
+import UpdatesModal from './UpdatesModal.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -54,6 +56,7 @@ const isMobileNavOpen = ref(false);
 const isHelpModalOpen = ref(false);
 const isProfileModalOpen = ref(false);
 const isLanguageModalOpen = ref(false);
+const isUpdatesModalOpen = ref(false);
 const createMenuRef = ref(null);
 const theme = ref('light');
 const accountStore = useAccountManagementStore();
@@ -104,6 +107,14 @@ function closeLanguageModal() {
 	isLanguageModalOpen.value = false;
 }
 
+function openUpdatesModal() {
+	isUpdatesModalOpen.value = true;
+}
+
+function closeUpdatesModal() {
+	isUpdatesModalOpen.value = false;
+}
+
 function runCreateAction(action) {
 	isCreateMenuOpen.value = false;
 	isMobileNavOpen.value = false;
@@ -135,6 +146,10 @@ function handleWindowKeydown(event) {
 
 	if (isProfileModalOpen.value) {
 		closeProfileModal();
+	}
+
+	if (isUpdatesModalOpen.value) {
+		closeUpdatesModal();
 	}
 }
 
@@ -186,6 +201,7 @@ const profileLinks = [
 		<HelpModal :open="isHelpModalOpen" @close="closeHelpModal" />
 		<ProfileModal :open="isProfileModalOpen" :profile-links="profileLinks" @close="closeProfileModal" />
 		<LanguageModal :open="isLanguageModalOpen" @close="closeLanguageModal" />
+		<UpdatesModal :open="isUpdatesModalOpen" @close="closeUpdatesModal" />
 
 		<header class="grid h-16 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 px-3 sm:gap-4 sm:px-4 lg:grid-cols-[244px_minmax(320px,720px)_1fr] lg:gap-3 lg:pr-4">
 			<div class="flex min-w-0 items-center gap-2 lg:gap-3">
@@ -217,6 +233,9 @@ const profileLinks = [
 				</button>
 				<button type="button" class="hidden size-10 place-items-center rounded-full text-[#5f6368] hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/10 sm:grid" :aria-label="t('header.openHelp')" @click="openHelpModal">
 					<IconHelp :size="18" :stroke="2" />
+				</button>
+				<button type="button" class="hidden size-10 place-items-center rounded-full text-[#5f6368] hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/10 sm:grid" :title="t('updates.buttonLabel')" :aria-label="t('updates.buttonLabel')" @click="openUpdatesModal">
+					<IconBell :size="18" :stroke="2" />
 				</button>
 				<button type="button" class="hidden size-10 place-items-center rounded-full text-[#5f6368] hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/10 sm:grid" :title="t('common.settings')">
 					<IconSettings :size="18" :stroke="2" />
