@@ -171,10 +171,12 @@ export function useFileActions({
 		const file = resolveFile();
 		if (!file || !file.capabilities?.starred) return;
 		const nextStarred = !Boolean(file.is_starred);
+		const label = nextStarred ? t('drive.star') : t('drive.unstar');
 		closeContextMenu();
 		errorRef.value = '';
 		try {
-			await api.toggleStar(file.id, nextStarred);
+			const task = () => api.toggleStar(file.id, nextStarred);
+			await runWithProgress(label, task);
 			await refresh();
 		} catch (error) {
 			errorRef.value = error.message;
